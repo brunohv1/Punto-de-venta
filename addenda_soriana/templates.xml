@@ -1,0 +1,43 @@
+<odoo>
+    <data>
+        <template id="soriana_addenda_xml" name="Addenda Soriana">
+            <t t-xml-node="comprobante">
+                <t t-namespace-key="TiendasSoriana" t-namespace-url="http://www.w3.org/2001/XMLSchema-instance"/>
+                <t t-namespace-key="DSCargaRemisionProv" t-namespace-url="http://www.w3.org/2001/XMLSchema"/>
+                <t t-schema-locations="http://tempuri.org/DSCargaRemisionProv.xsd"/>
+            </t>
+
+            <t t-xml-node="addenda">
+                <t t-set="sale_id" t-value="record.invoice_origin and env['sale.order'].search([('name','=',record.invoice_origin)], limit=1)"/>
+                <t t-set="cantidad_bultos" t-value="sum(line.quantity for line in record.invoice_line_ids)"/>
+                
+                <DSCargaRemisionProv xmlns="http://tempuri.org/DSCargaRemisionProv.xsd">
+                    <Remision
+                        t-attf-Id="#{sale_id.name if sale_id else record.name}"
+                        t-attf-RowOrder="1"
+                        t-attf-Proveedor="#{record.partner_id.soriana_proveedor_id or 'FALTA_PROVEEDOR'}"
+                        t-attf-Remision="#{record.name}"
+                        t-attf-Consecutivo="0"
+                        t-attf-FechaRemision="#{record.invoice_date}"
+                        t-attf-Tienda="#{record.soriana_numero_tienda or '0'}"
+                        t-attf-TipoMoneda="#{'1' if record.currency_id.name == 'MXN' else '2'}"
+                        t-attf-TipoBulto="1"
+                        t-attf-EntregaMercancia="1"
+                        t-attf-CumpleReqFiscales="true"
+                        t-attf-IEPS="0.00"
+                        t-attf-IVA="#{'%.2f' % record.amount_tax_signed}"
+                        t-attf-OtrosImpuestos="0.00"
+                        t-attf-TOTAL="#{'%.2f' % record.amount_total}"
+                        t-attf-Cantidad_Pedidos="1"
+                        t-attf-FechaEntrega="#{record.invoice_date}"
+                        t-attf-Cita="0"
+                        t-attf-FolioNotaEntrada="#{record.soriana_folio_entrada or 'FALTA_FOLIO'}"
+                        t-attf-CantidadBultos="#{int(cantidad_bultos)}"
+                        t-attf-Subtotal="#{'%.2f' % record.amount_untaxed}"
+                        t-attf-Descuento="0.00">
+                    </Remision>
+                </DSCargaRemisionProv>
+            </t>
+        </template>
+    </data>
+</odoo>
