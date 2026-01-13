@@ -1,0 +1,28 @@
+<odoo>
+    <record id="view_move_form_inherit_soriana" model="ir.ui.view">
+        <field name="name">account.move.form.soriana</field>
+        <field name="model">account.move</field>
+        <field name="inherit_id" ref="account.view_move_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//notebook" position="inside">
+                <page string="Addenda Soriana">
+                    <group>
+                        <field name="soriana_folio_entrada"/>
+                        <field name="soriana_numero_tienda"/>
+                    </group>
+                </page>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="view_partner_form_inherit_soriana" model="ir.ui.view">
+        <field name="name">res.partner.form.soriana</field>
+        <field name="model">res.partner</field>
+        <field name="inherit_id" ref="base.view_partner_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='vat']" position="after">
+                <field name="soriana_proveedor_id"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>
