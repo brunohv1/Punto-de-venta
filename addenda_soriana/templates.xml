@@ -5,7 +5,6 @@
                 <t t-if="record.partner_id.soriana_proveedor_id">
                     
                     <t t-set="sale_id" t-value="record.invoice_origin and env['sale.order'].search([('name','=',record.invoice_origin)], limit=1)"/>
-                    
                     <t t-set="cantidad_bultos" t-value="sum(l.quantity for l in record.invoice_line_ids)"/>
                     <t t-set="descuento_total" t-value="0.0"/>
                     <t t-foreach="record.invoice_line_ids" t-as="line">
