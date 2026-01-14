@@ -9,16 +9,27 @@
 
             <t t-xml-node="addenda">
                 <t t-set="sale_id" t-value="record.invoice_origin and env['sale.order'].search([('name','=',record.invoice_origin)], limit=1)"/>
-                <t t-set="cantidad_bultos" t-value="sum(line.quantity for line in record.invoice_line_ids)"/>
                 
+                <t t-set="cantidad_bultos" t-value="0.0"/>
+                <t t-foreach="record.invoice_line_ids" t-as="l">
+                    <t t-set="cantidad_bultos" t-value="cantidad_bultos + (l.quantity or 0.0)"/>
+                </t>
+
+                <t t-set="descuento_total" t-value="0.0"/>
+                <t t-foreach="record.invoice_line_ids" t-as="line">
+                    <t t-set="descuento_linea" t-value="(line.price_unit or 0.0) * (line.quantity or 0.0) * ((line.discount or 0.0) / 100)"/>
+                    <t t-set="descuento_total" t-value="descuento_total + descuento_linea"/>
+                </t>
+
                 <DSCargaRemisionProv xmlns="http://tempuri.org/DSCargaRemisionProv.xsd">
+                    
                     <Remision
                         t-attf-Id="#{sale_id.name if sale_id else record.name}"
                         t-attf-RowOrder="1"
-                        t-attf-Proveedor="#{record.partner_id.soriana_proveedor_id or 'FALTA_PROVEEDOR'}"
+                        t-attf-Proveedor="#{record.partner_id.soriana_proveedor_id or 'FALTA_PROV'}"
                         t-attf-Remision="#{record.name}"
                         t-attf-Consecutivo="0"
-                        t-attf-FechaRemision="#{record.invoice_date}"
+                        t-attf-FechaRemision="#{record.invoice_date}T00:00:00"
                         t-attf-Tienda="#{record.soriana_numero_tienda or '0'}"
                         t-attf-TipoMoneda="#{'1' if record.currency_id.name == 'MXN' else '2'}"
                         t-attf-TipoBulto="1"
@@ -29,13 +40,41 @@
                         t-attf-OtrosImpuestos="0.00"
                         t-attf-TOTAL="#{'%.2f' % record.amount_total}"
                         t-attf-Cantidad_Pedidos="1"
-                        t-attf-FechaEntrega="#{record.invoice_date}"
+                        t-attf-FechaEntrega="#{record.invoice_date}T00:00:00"
                         t-attf-Cita="0"
                         t-attf-FolioNotaEntrada="#{record.soriana_folio_entrada or 'FALTA_FOLIO'}"
                         t-attf-CantidadBultos="#{int(cantidad_bultos)}"
                         t-attf-Subtotal="#{'%.2f' % record.amount_untaxed}"
-                        t-attf-Descuento="0.00">
+                        t-attf-Descuento="#{'%.2f' % descuento_total}">
                     </Remision>
+
+                    <Pedidos
+                        t-attf-Id="#{sale_id.name if sale_id else record.name}"
+                        t-attf-RowOrder="1"
+                        t-attf-Proveedor="#{record.partner_id.soriana_proveedor_id or 'FALTA_PROV'}"
+                        t-attf-Remision="#{record.name}"
+                        t-attf-FolioPedido="#{sale_id.name if sale_id else record.name}"
+                        t-attf-Tienda="#{record.soriana_numero_tienda or '0'}"
+                        t-attf-CantidadArticulos="#{len(record.invoice_line_ids)}">
+                    </Pedidos>
+
+                    <t t-set="counter" t-value="0"/>
+                    <t t-foreach="record.invoice_line_ids" t-as="line">
+                        <t t-set="counter" t-value="counter + 1"/>
+                        <Articulos
+                            t-attf-Id="#{sale_id.name if sale_id else record.name}"
+                            t-attf-RowOrder="#{counter}"
+                            t-attf-Proveedor="#{record.partner_id.soriana_proveedor_id or 'FALTA_PROV'}"
+                            t-attf-Remision="#{record.name}"
+                            t-attf-FolioPedido="#{sale_id.name if sale_id else record.name}"
+                            t-attf-Tienda="#{record.soriana_numero_tienda or '0'}"
+                            t-attf-Codigo="#{line.product_id.barcode or 'SIN_CODIGO'}"
+                            t-attf-CantidadUnidadCompra="#{'%.2f' % line.quantity}"
+                            t-attf-CostoNetoUnidadCompra="#{'%.2f' % line.price_unit}"
+                            t-attf-PorcentajeIEPS="0.00"
+                            t-attf-PorcentajeIVA="#{line.tax_ids[:1].amount if line.tax_ids else '0.00'}"/>
+                    </t>
+
                 </DSCargaRemisionProv>
             </t>
         </template>
