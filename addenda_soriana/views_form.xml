@@ -5,7 +5,7 @@
         <field name="inherit_id" ref="account.view_move_form"/>
         <field name="arch" type="xml">
             <xpath expr="//notebook" position="inside">
-                <page string="Addenda Soriana">
+                <page string="Addenda Soriana" name="page_addenda_soriana">
                     <group>
                         <field name="soriana_folio_entrada"/>
                         <field name="soriana_numero_tienda"/>
@@ -20,8 +20,10 @@
         <field name="model">res.partner</field>
         <field name="inherit_id" ref="base.view_partner_form"/>
         <field name="arch" type="xml">
-            <xpath expr="//field[@name='vat']" position="after">
-                <field name="soriana_proveedor_id"/>
+            <xpath expr="//page[@name='sales_purchases']//group" position="inside">
+                <group string="Configuración Soriana" name="soriana_config">
+                    <field name="soriana_proveedor_id"/>
+                </group>
             </xpath>
         </field>
     </record>
