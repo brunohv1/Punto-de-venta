@@ -1,82 +1,83 @@
 <odoo>
     <data>
-        <template id="soriana_addenda_xml" name="Addenda Soriana">
-            <t t-xml-node="comprobante">
-                <t t-namespace-key="TiendasSoriana" t-namespace-url="http://www.w3.org/2001/XMLSchema-instance"/>
-                <t t-namespace-key="DSCargaRemisionProv" t-namespace-url="http://www.w3.org/2001/XMLSchema"/>
-                <t t-schema-locations="http://tempuri.org/DSCargaRemisionProv.xsd"/>
-            </t>
-
-            <t t-xml-node="addenda">
-                <t t-set="sale_id" t-value="record.invoice_origin and env['sale.order'].search([('name','=',record.invoice_origin)], limit=1)"/>
+        <template id="soriana_addenda" inherit_id="l10n_mx_edi.cfdiv33">
+            
+            <xpath expr="//*[local-name()='Comprobante']" position="inside">
                 
-                <t t-set="cantidad_bultos" t-value="0.0"/>
-                <t t-foreach="record.invoice_line_ids" t-as="l">
-                    <t t-set="cantidad_bultos" t-value="cantidad_bultos + (l.quantity or 0.0)"/>
+                <t t-if="record.partner_id.soriana_proveedor_id">
+                    <cfdi:Addenda>
+                        
+                        <t t-set="sale_id" t-value="record.invoice_origin and env['sale.order'].search([('name','=',record.invoice_origin)], limit=1)"/>
+                        
+                        <t t-set="cantidad_bultos" t-value="0.0"/>
+                        <t t-foreach="record.invoice_line_ids" t-as="l">
+                            <t t-set="cantidad_bultos" t-value="cantidad_bultos + (l.quantity or 0.0)"/>
+                        </t>
+
+                        <t t-set="descuento_total" t-value="0.0"/>
+                        <t t-foreach="record.invoice_line_ids" t-as="line">
+                            <t t-set="descuento_linea" t-value="(line.price_unit or 0.0) * (line.quantity or 0.0) * ((line.discount or 0.0) / 100)"/>
+                            <t t-set="descuento_total" t-value="descuento_total + descuento_linea"/>
+                        </t>
+
+                        <DSCargaRemisionProv xmlns="http://tempuri.org/DSCargaRemisionProv.xsd">
+                            
+                            <Remision
+                                t-attf-Id="#{sale_id.name if sale_id else record.name}"
+                                RowOrder="1"
+                                t-attf-Proveedor="#{record.partner_id.soriana_proveedor_id}"
+                                t-attf-Remision="#{record.name.replace('INV/','').replace('/','')}" 
+                                Consecutivo="0"
+                                t-attf-FechaRemision="#{record.invoice_date}T00:00:00"
+                                t-attf-Tienda="#{record.soriana_numero_tienda or '0'}"
+                                t-attf-TipoMoneda="#{'1' if record.currency_id.name == 'MXN' else '2'}"
+                                TipoBulto="1"
+                                EntregaMercancia="1"
+                                CumpleReqFiscales="true"
+                                IEPS="0.00"
+                                t-attf-IVA="#{'%.2f' % record.amount_tax}"
+                                OtrosImpuestos="0.00"
+                                t-attf-TOTAL="#{'%.2f' % record.amount_total}"
+                                Cantidad_Pedidos="1"
+                                t-attf-FechaEntrega="#{record.invoice_date}T00:00:00"
+                                Cita="0"
+                                t-attf-FolioNotaEntrada="#{record.soriana_folio_entrada or ''}"
+                                t-attf-CantidadBultos="#{int(cantidad_bultos)}"
+                                t-attf-Subtotal="#{'%.2f' % record.amount_untaxed}"
+                                t-attf-Descuento="#{'%.2f' % descuento_total}">
+                            </Remision>
+
+                            <Pedidos
+                                t-attf-Id="#{sale_id.name if sale_id else record.name}"
+                                RowOrder="1"
+                                t-attf-Proveedor="#{record.partner_id.soriana_proveedor_id}"
+                                t-attf-Remision="#{record.name.replace('INV/','').replace('/','')}"
+                                t-attf-FolioPedido="#{sale_id.name if sale_id else record.name}"
+                                t-attf-Tienda="#{record.soriana_numero_tienda or '0'}"
+                                t-attf-CantidadArticulos="#{len(record.invoice_line_ids)}">
+                            </Pedidos>
+
+                            <t t-set="counter" t-value="0"/>
+                            <t t-foreach="record.invoice_line_ids" t-as="line">
+                                <t t-set="counter" t-value="counter + 1"/>
+                                <Articulos
+                                    t-attf-Id="#{sale_id.name if sale_id else record.name}"
+                                    t-attf-RowOrder="#{counter}"
+                                    t-attf-Proveedor="#{record.partner_id.soriana_proveedor_id}"
+                                    t-attf-Remision="#{record.name.replace('INV/','').replace('/','')}"
+                                    t-attf-FolioPedido="#{sale_id.name if sale_id else record.name}"
+                                    t-attf-Tienda="#{record.soriana_numero_tienda or '0'}"
+                                    t-attf-CODBAR="#{line.product_id.barcode or 'SIN_CODIGO'}"
+                                    t-attf-CantidadUnidadCompra="#{'%.2f' % line.quantity}"
+                                    t-attf-CostoNetoUnidadCompra="#{'%.2f' % line.price_unit}"
+                                    t-attf-PorcentajeIEPS="0.00"
+                                    t-attf-PorcentajeIVA="#{line.tax_ids[:1].amount if line.tax_ids else '0.00'}"/>
+                            </t>
+
+                        </DSCargaRemisionProv>
+                    </cfdi:Addenda>
                 </t>
-
-                <t t-set="descuento_total" t-value="0.0"/>
-                <t t-foreach="record.invoice_line_ids" t-as="line">
-                    <t t-set="descuento_linea" t-value="(line.price_unit or 0.0) * (line.quantity or 0.0) * ((line.discount or 0.0) / 100)"/>
-                    <t t-set="descuento_total" t-value="descuento_total + descuento_linea"/>
-                </t>
-
-                <DSCargaRemisionProv xmlns="http://tempuri.org/DSCargaRemisionProv.xsd">
-                    
-                    <Remision
-                        t-attf-Id="#{sale_id.name if sale_id else record.name}"
-                        t-attf-RowOrder="1"
-                        t-attf-Proveedor="#{record.partner_id.soriana_proveedor_id or 'FALTA_PROV'}"
-                        t-attf-Remision="#{record.name}"
-                        t-attf-Consecutivo="0"
-                        t-attf-FechaRemision="#{record.invoice_date}T00:00:00"
-                        t-attf-Tienda="#{record.soriana_numero_tienda or '0'}"
-                        t-attf-TipoMoneda="#{'1' if record.currency_id.name == 'MXN' else '2'}"
-                        t-attf-TipoBulto="1"
-                        t-attf-EntregaMercancia="1"
-                        t-attf-CumpleReqFiscales="true"
-                        t-attf-IEPS="0.00"
-                        t-attf-IVA="#{'%.2f' % record.amount_tax_signed}"
-                        t-attf-OtrosImpuestos="0.00"
-                        t-attf-TOTAL="#{'%.2f' % record.amount_total}"
-                        t-attf-Cantidad_Pedidos="1"
-                        t-attf-FechaEntrega="#{record.invoice_date}T00:00:00"
-                        t-attf-Cita="0"
-                        t-attf-FolioNotaEntrada="#{record.soriana_folio_entrada or 'FALTA_FOLIO'}"
-                        t-attf-CantidadBultos="#{int(cantidad_bultos)}"
-                        t-attf-Subtotal="#{'%.2f' % record.amount_untaxed}"
-                        t-attf-Descuento="#{'%.2f' % descuento_total}">
-                    </Remision>
-
-                    <Pedidos
-                        t-attf-Id="#{sale_id.name if sale_id else record.name}"
-                        t-attf-RowOrder="1"
-                        t-attf-Proveedor="#{record.partner_id.soriana_proveedor_id or 'FALTA_PROV'}"
-                        t-attf-Remision="#{record.name}"
-                        t-attf-FolioPedido="#{sale_id.name if sale_id else record.name}"
-                        t-attf-Tienda="#{record.soriana_numero_tienda or '0'}"
-                        t-attf-CantidadArticulos="#{len(record.invoice_line_ids)}">
-                    </Pedidos>
-
-                    <t t-set="counter" t-value="0"/>
-                    <t t-foreach="record.invoice_line_ids" t-as="line">
-                        <t t-set="counter" t-value="counter + 1"/>
-                        <Articulos
-                            t-attf-Id="#{sale_id.name if sale_id else record.name}"
-                            t-attf-RowOrder="#{counter}"
-                            t-attf-Proveedor="#{record.partner_id.soriana_proveedor_id or 'FALTA_PROV'}"
-                            t-attf-Remision="#{record.name}"
-                            t-attf-FolioPedido="#{sale_id.name if sale_id else record.name}"
-                            t-attf-Tienda="#{record.soriana_numero_tienda or '0'}"
-                            t-attf-Codigo="#{line.product_id.barcode or 'SIN_CODIGO'}"
-                            t-attf-CantidadUnidadCompra="#{'%.2f' % line.quantity}"
-                            t-attf-CostoNetoUnidadCompra="#{'%.2f' % line.price_unit}"
-                            t-attf-PorcentajeIEPS="0.00"
-                            t-attf-PorcentajeIVA="#{line.tax_ids[:1].amount if line.tax_ids else '0.00'}"/>
-                    </t>
-
-                </DSCargaRemisionProv>
-            </t>
+            </xpath>
         </template>
     </data>
 </odoo>
