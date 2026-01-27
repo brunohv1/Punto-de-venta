@@ -1,0 +1,73 @@
+<odoo>
+    <data>
+        <template id="soriana_addenda" name="Addenda Soriana">
+            <cfdi:Addenda xmlns:cfdi="http://www.sat.gob.mx/cfd/4">
+                <t t-if="record.partner_id.soriana_proveedor_id">
+                    
+                    <t t-set="sale_id" t-value="record.invoice_origin and env['sale.order'].search([('name','=',record.invoice_origin)], limit=1)"/>
+                    <t t-set="cantidad_bultos" t-value="sum(l.quantity for l in record.invoice_line_ids)"/>
+                    <t t-set="descuento_total" t-value="0.0"/>
+                    <t t-foreach="record.invoice_line_ids" t-as="line">
+                        <t t-set="descuento_linea" t-value="(line.price_unit * line.quantity * (line.discount / 100))"/>
+                        <t t-set="descuento_total" t-value="descuento_total + descuento_linea"/>
+                    </t>
+
+                    <DSCargaRemisionProv xmlns="http://tempuri.org/DSCargaRemisionProv.xsd">
+                        <Remision
+                            t-att-Id="record.name"
+                            RowOrder="1"
+                            t-att-Proveedor="record.partner_id.soriana_proveedor_id"
+                            t-att-Remision="record.name.replace('INV/','').replace('/','')"
+                            Consecutivo="0"
+                            t-att-FechaRemision="record.invoice_date"
+                            t-att-Tienda="record.soriana_numero_tienda or '0'"
+                            t-att-TipoMoneda="'1' if record.currency_id.name == 'MXN' else '2'"
+                            TipoBulto="1"
+                            EntregaMercancia="1"
+                            CumpleReqFiscales="true"
+                            IEPS="0.00"
+                            t-att-IVA="'%.2f' % record.amount_tax"
+                            OtrosImpuestos="0.00"
+                            t-att-TOTAL="'%.2f' % record.amount_total"
+                            Cantidad_Pedidos="1"
+                            t-att-FechaEntrega="record.invoice_date"
+                            Cita="0"
+                            t-att-FolioNotaEntrada="record.soriana_folio_entrada or ''"
+                            t-att-CantidadBultos="int(cantidad_bultos)"
+                            t-att-Subtotal="'%.2f' % record.amount_untaxed"
+                            t-att-Descuento="'%.2f' % descuento_total"
+                        />
+                        
+                        <Pedidos
+                            t-att-Id="record.name"
+                            RowOrder="1"
+                            t-att-Proveedor="record.partner_id.soriana_proveedor_id"
+                            t-att-Remision="record.name.replace('INV/','').replace('/','')"
+                            t-att-FolioPedido="sale_id.name if sale_id else record.name"
+                            t-att-Tienda="record.soriana_numero_tienda or '0'"
+                            t-att-CantidadArticulos="len(record.invoice_line_ids)"
+                        />
+
+                        <t t-set="counter" t-value="0"/>
+                        <t t-foreach="record.invoice_line_ids" t-as="line">
+                            <t t-set="counter" t-value="counter + 1"/>
+                            <Articulos
+                                t-att-Id="record.name"
+                                t-att-RowOrder="counter"
+                                t-att-Proveedor="record.partner_id.soriana_proveedor_id"
+                                t-att-Remision="record.name.replace('INV/','').replace('/','')"
+                                t-att-FolioPedido="sale_id.name if sale_id else record.name"
+                                t-att-Tienda="record.soriana_numero_tienda or '0'"
+                                t-att-CODBAR="line.product_id.barcode or 'SIN_CODIGO'"
+                                t-att-CantidadUnidadCompra="'%.2f' % line.quantity"
+                                t-att-CostoNetoUnidadCompra="'%.2f' % line.price_unit"
+                                PorcentajeIEPS="0.00"
+                                PorcentajeIVA="16.00" 
+                            />
+                        </t>
+                    </DSCargaRemisionProv>
+                </t>
+            </cfdi:Addenda>
+        </template>
+    </data>
+</odoo>
